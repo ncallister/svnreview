@@ -8,16 +8,30 @@ import sys
 # Classes
 
 class Path(object) :
-  def __init__(self, path, revision) :
+  def __init__(self, path, revision, review) :
     self.path = path
-    self.min = revision
-    self.max = revision
-
-  def revision(self, revision) :
-    if (revision < self.min) :
+    if (review == None) :
       self.min = revision
-    if (revision > self.max) :
+    else :
+      self.min = None
+    if (review == None) :
       self.max = revision
+    else :
+      self.max = None
+    self.overallMin = revision
+    self.overallMax = revision
+
+  def revision(self, revision, review) :
+    if (review == None and (self.min == None or revision < self.min)) :
+      self.min = revision
+    if (revision < self.overallMin) :
+      self.overallMin = revision
+
+    if (review == None and (self.max == None or revision > self.max)) :
+      self.max = revision
+    if (revision > self.overallMax) :
+      self.overallMax = revision
+
 
 class Review(object) :
   def __init__(self, reviewNo, start, end) :
@@ -30,7 +44,7 @@ class Review(object) :
       self.end = temp
 
   def covers(self, revision) :
-    return revision >= self.start and revision <= self.end
+    return (revision >= self.start and revision <= self.end)
 
 # Constants
 REVIEW_DEF=1
@@ -98,24 +112,22 @@ for revisionText in reversed(revlist) :
         revnumbers[revisionNumber] = review
         break
 
-    # Don't bother processing previous reviews
-    if (revnumbers[revisionNumber] == None) :
-      lines = re.split('\n', revisionText)
-      i = 3
+    lines = re.split('\n', revisionText)
+    i = 3
 
-      while lines[i] != '' and i < len(lines):
-        path = lines[i][6:]
-        found = False
-        for nextPath in paths :
-          if (nextPath.path == path) :
-            found = True
-            nextPath.revision(revisionNumber)
-            break
+    while lines[i] != '' and i < len(lines):
+      path = lines[i][6:]
+      found = False
+      for nextPath in paths :
+        if (nextPath.path == path) :
+          found = True
+          nextPath.revision(revisionNumber, revnumbers[revisionNumber])
+          break
 
-        if (not found) :
-          paths.append(Path(path, revisionNumber))
+      if (not found) :
+        paths.append(Path(path, revisionNumber, revnumbers[revisionNumber]))
 
-        i = i + 1
+      i = i + 1
 
 paths = sorted(paths, key=lambda path: path.path)
 
@@ -133,13 +145,19 @@ print '== Effected Paths =='
 print ''
 for nextPath in paths :
   filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
-  print ' * [log:{0}@{1}:{2} {3}]'.format(nextPath.path, nextPath.min, nextPath.max, filename)
+  if (nextPath.min == None) :
+    print ' * {0} ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax)
+  elif (nextPath.min == nextPath.overallMin and nextPath.max == nextPath.overallMax) :
+    print ' * [log:{1}@{2}:{3} {0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max)
+  else :
+    print ' * [log:{1}@{2}:{3} {0}] ([log:{1}@{4}:{5} Total Changes])'.format(filename, nextPath.path, nextPath.min, nextPath.max, nextPath.overallMin, nextPath.overallMax)
 print ''
 print '== Review {0} =='.format(thisReviewNo)
 print ''
 for nextPath in paths :
-  filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
-  print '=== [log:{0}@{1}:{2} {3}] ==='.format(nextPath.path, nextPath.min, nextPath.max, filename)
-  print ''
-  print ' 1. '
-  print ''
+  if (nextPath.min != None) :
+    filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
+    print '=== [log:{0}@{1}:{2} {3}] ==='.format(nextPath.path, nextPath.min, nextPath.max, filename)
+    print ''
+    print ' 1. '
+    print ''
