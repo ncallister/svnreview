@@ -24,7 +24,7 @@ In linux that can be done by either running the following commands before execut
     export SVNROOT
 
 The script is executed using the python interpreter. Previous revisions are defined using the option '-r' followed by
-a parameter in the format '<review number>:<first revision>-<last revision>'.
+a parameter in the format `<review number>:<first revision>-<last revision>`.
 
 ### Example 1: First review
 
