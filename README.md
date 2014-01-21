@@ -1,6 +1,6 @@
-= svnreview
+# svnreview
 
-== Introduction
+## Introduction
 
 A simple python script to search an SVN repository's history and create a formatted review template.
 
@@ -12,7 +12,7 @@ reviews will be omitted from the changes in this review but overall changes for 
 
 ![Automation](http://imgs.xkcd.com/comics/automation.png)
 
-== Usage
+## Usage
 
 Before the script can be used an environment variable must be defined named `SVNROOT` which is to contain a valid
 SVN URL path to the SVN repository that is being used.
@@ -26,11 +26,11 @@ In linux that can be done by either running the following commands before execut
 The script is executed using the python interpreter. Previous revisions are defined using the option '-r' followed by
 a parameter in the format '<review number>:<first revision>-<last revision>'.
 
-=== Example 1: First review
+### Example 1: First review
 
     python review.py '#1234'
 
-=== Example 2: Second review
+### Example 2: Second review
 
 Assuming that the first review discovered revisions ranging from 34 to 42:
 
