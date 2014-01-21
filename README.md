@@ -34,4 +34,4 @@ a parameter in the format `<review number>:<first revision>-<last revision>`.
 
 Assuming that the first review discovered revisions ranging from 34 to 42:
 
-    python review.py -r 1:34-42 '#1234'
+    python review.py -r '1:34-42' '#1234'
