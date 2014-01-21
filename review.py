@@ -4,6 +4,7 @@ import string
 import re
 import subprocess
 import sys
+import os
 
 # Classes
 
@@ -49,7 +50,10 @@ class Review(object) :
 # Constants
 REVIEW_DEF=1
 
-revisionPath = "svn+ssh://svnhost/home/developer/projects/iwsvn"
+revisionPath = os.environ.get("SVNROOT")
+if (revisionPath == None) :
+  print "A path to the SVN repository must be defined in an environment variable named \"SVNROOT\""
+  sys.exit()
 
 # Process the arguments
 thisReviewNo = 1
