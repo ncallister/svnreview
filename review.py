@@ -150,7 +150,7 @@ print ''
 for nextPath in paths :
   filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
   if (nextPath.min == None) :
-    print ' * {0} ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax)
+    print ' * `{0}` ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax)
   elif (nextPath.min == nextPath.overallMin and nextPath.max == nextPath.overallMax) :
     print ' * [log:{1}@{2}:{3} {0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max)
   else :
