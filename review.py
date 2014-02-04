@@ -9,7 +9,7 @@ import os
 # Classes
 
 class Path(object) :
-  def __init__(self, path, revision, review) :
+  def __init__(self, repoPath, modifiers, path, revision, review) :
     self.path = path
     if (review == None) :
       self.min = revision
@@ -21,6 +21,11 @@ class Path(object) :
       self.max = None
     self.overallMin = revision
     self.overallMax = revision
+    if (modifiers.find("D") != -1) :
+      # File was deleted, look at previous revision
+      self.nodeKind = getNodeKind(repoPath, path, revision - 1)
+    else :
+      self.nodeKind = getNodeKind(repoPath, path, revision)
 
   def revision(self, revision, review) :
     if (review == None and (self.min == None or revision < self.min)) :
@@ -47,11 +52,28 @@ class Review(object) :
   def covers(self, revision) :
     return (revision >= self.start and revision <= self.end)
 
+def getNodeKind(repoPath, path, revision) :
+  url = repoPath + "/" + path + "@" + str(revision)
+  command = ["svn", "info", url]
+  process = subprocess.Popen(command, stdout=subprocess.PIPE)
+  output = process.communicate()
+
+  lines = output[0].split("\n")
+  kind = None
+  for line in lines :
+    if (re.match("^Node Kind: ", line)) :
+      parts = line.split(": ")
+      kind = parts[1]
+      break
+
+  return kind
+
+
 # Constants
 REVIEW_DEF=1
 
-revisionPath = os.environ.get("SVNROOT")
-if (revisionPath == None) :
+repoPath = os.environ.get("SVNROOT")
+if (repoPath == None) :
   print "A path to the SVN repository must be defined in an environment variable named \"SVNROOT\""
   sys.exit()
 
@@ -92,7 +114,7 @@ if (invalidArgs) :
     sys.exit()
 
 # Perform the query
-command = "svn log -v {0}".format(revisionPath)
+command = "svn log -v {0}".format(repoPath)
 process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
 output = process.communicate()
 
@@ -120,7 +142,8 @@ for revisionText in reversed(revlist) :
     i = 3
 
     while lines[i] != '' and i < len(lines):
-      path = lines[i][6:]
+      modifiers = lines[i][:6]
+      path = lines[i][6:].split("(")[0].strip()
       found = False
       for nextPath in paths :
         if (nextPath.path == path) :
@@ -129,7 +152,7 @@ for revisionText in reversed(revlist) :
           break
 
       if (not found) :
-        paths.append(Path(path, revisionNumber, revnumbers[revisionNumber]))
+        paths.append(Path(repoPath, modifiers, path, revisionNumber, revnumbers[revisionNumber]))
 
       i = i + 1
 
@@ -148,18 +171,19 @@ print ''
 print '== Effected Paths =='
 print ''
 for nextPath in paths :
-  filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
-  if (nextPath.min == None) :
-    print ' * `{0}` ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax)
-  elif (nextPath.min == nextPath.overallMin and nextPath.max == nextPath.overallMax) :
-    print ' * [log:{1}@{2}:{3} {0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max)
-  else :
-    print ' * [log:{1}@{2}:{3} {0}] ([log:{1}@{4}:{5} Total Changes])'.format(filename, nextPath.path, nextPath.min, nextPath.max, nextPath.overallMin, nextPath.overallMax)
+  if (nextPath.nodeKind == "file") :
+    filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
+    if (nextPath.min == None) :
+      print ' * `{0}` ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax)
+    elif (nextPath.min == nextPath.overallMin and nextPath.max == nextPath.overallMax) :
+      print ' * [log:{1}@{2}:{3} {0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max)
+    else :
+      print ' * [log:{1}@{2}:{3} {0}] ([log:{1}@{4}:{5} Total Changes])'.format(filename, nextPath.path, nextPath.min, nextPath.max, nextPath.overallMin, nextPath.overallMax)
 print ''
 print '== Review {0} =='.format(thisReviewNo)
 print ''
 for nextPath in paths :
-  if (nextPath.min != None) :
+  if (nextPath.nodeKind == "file" and nextPath.min != None) :
     filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
     print '=== [log:{0}@{1}:{2} {3}] ==='.format(nextPath.path, nextPath.min, nextPath.max, filename)
     print ''
