@@ -119,7 +119,8 @@ process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
 output = process.communicate()
 
 revlist = re.split('-{72}', output[0])
-revnumbers = {}
+revisionReviews = {}
+revisionNumbers = []
 paths = []
 for revisionText in reversed(revlist) :
   # The conditions are to be ORed so search for any match
@@ -131,11 +132,12 @@ for revisionText in reversed(revlist) :
 
   if (match) :
     revisionNumber = int(re.findall('(?<=r)[0-9]+', revisionText)[0])
-    revnumbers[revisionNumber] = None
+    revisionNumbers.append(revisionNumber)
+    revisionReviews[revisionNumber] = None
 
     for review in previousReviews :
       if (review.covers(revisionNumber)) :
-        revnumbers[revisionNumber] = review
+        revisionReviews[revisionNumber] = review
         break
 
     lines = re.split('\n', revisionText)
@@ -148,11 +150,11 @@ for revisionText in reversed(revlist) :
       for nextPath in paths :
         if (nextPath.path == path) :
           found = True
-          nextPath.revision(revisionNumber, revnumbers[revisionNumber])
+          nextPath.revision(revisionNumber, revisionReviews[revisionNumber])
           break
 
       if (not found) :
-        paths.append(Path(repoPath, modifiers, path, revisionNumber, revnumbers[revisionNumber]))
+        paths.append(Path(repoPath, modifiers, path, revisionNumber, revisionReviews[revisionNumber]))
 
       i = i + 1
 
@@ -160,11 +162,11 @@ paths = sorted(paths, key=lambda path: path.path)
 
 print '== Revisions =='
 print ''
-for revno in revnumbers.keys() :
-  if (revnumbers[revno] == None) :
+for revno in revisionNumbers :
+  if (revisionReviews[revno] == None) :
     print ' * [{0}]'.format(revno)
   else :
-    print ' * [{0}] - Review {1}'.format(revno, revnumbers[revno].reviewNo)
+    print ' * [{0}] - Review {1}'.format(revno, revisionReviews[revno].reviewNo)
 print ''
 print 'Filter: `{0}`'.format(str(sys.argv[1:]))
 print ''
