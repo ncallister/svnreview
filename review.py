@@ -74,6 +74,7 @@ def getNodeKind(repoPath, path, revision) :
 
 # Constants
 REVIEW_DEF=1
+OMITTED_REVS=2
 
 repoPath = os.environ.get("SVNROOT")
 if (repoPath == None) :
@@ -86,6 +87,7 @@ searchStrings = []
 previousReviews = []
 nextArg = None
 invalidArgs = True
+omittedRevisions = []
 
 for argument in sys.argv[1:] :
   # We have at least one argument, good start
@@ -106,14 +108,21 @@ for argument in sys.argv[1:] :
     if (reviewNo >= thisReviewNo) :
       thisReviewNo = reviewNo + 1
 
+  elif (nextArg == OMITTED_REVS) :
+    nextArg = None
+    omittedRevisions = re.split(' *, *', argument)
+
   elif (argument == '-r') :
     nextArg = REVIEW_DEF
+
+  elif (argument == '-o') :
+    nextArg = OMITTED_REVS
 
   else :
     searchStrings.append(argument)
 
 if (invalidArgs) :
-    print 'Usage: python review.py [-r reviewno:start-end [-r reviewno:start-end ...]] [search_term [search_term ...]]'
+    print 'Usage: python review.py [-r reviewno:start-end [-r reviewno:start-end ...]] [-o <comma separated list of omitted revisions>] [search_term [search_term ...]]'
     sys.exit()
 
 # Perform the query
@@ -135,31 +144,33 @@ for revisionText in reversed(revlist) :
 
   if (match) :
     revisionNumber = int(re.findall('(?<=r)[0-9]+', revisionText)[0])
-    revisionNumbers.append(revisionNumber)
-    revisionReviews[revisionNumber] = None
 
-    for review in previousReviews :
-      if (review.covers(revisionNumber)) :
-        revisionReviews[revisionNumber] = review
-        break
+    if str(revisionNumber) not in omittedRevisions :
+      revisionNumbers.append(revisionNumber)
+      revisionReviews[revisionNumber] = None
 
-    lines = re.split('\n', revisionText)
-    i = 3
-
-    while lines[i] != '' and i < len(lines):
-      modifiers = lines[i][:6]
-      path = lines[i][6:].split("(")[0].strip()
-      found = False
-      for nextPath in paths :
-        if (nextPath.path == path) :
-          found = True
-          nextPath.revision(revisionNumber, revisionReviews[revisionNumber])
+      for review in previousReviews :
+        if (review.covers(revisionNumber)) :
+          revisionReviews[revisionNumber] = review
           break
 
-      if (not found) :
-        paths.append(Path(repoPath, modifiers, path, revisionNumber, revisionReviews[revisionNumber]))
+      lines = re.split('\n', revisionText)
+      i = 3
 
-      i = i + 1
+      while lines[i] != '' and i < len(lines):
+        modifiers = lines[i][:6]
+        path = lines[i][6:].split("(")[0].strip()
+        found = False
+        for nextPath in paths :
+          if (nextPath.path == path) :
+            found = True
+            nextPath.revision(revisionNumber, revisionReviews[revisionNumber])
+            break
+
+        if (not found) :
+          paths.append(Path(repoPath, modifiers, path, revisionNumber, revisionReviews[revisionNumber]))
+
+        i = i + 1
 
 paths = sorted(paths, key=lambda path: path.path)
 projectRegex = re.compile('^(?P<project>(([^/]+/)*trunk)|(([^/]+/)*branches/[^/]+))/')
@@ -170,6 +181,9 @@ for prevReview in previousReviews :
 
 if len(revisionNumbers) > 0 :
   nextArgs += '-r \'{0}:{1}-{2}\' '.format(thisReviewNo, min(revisionNumbers), max(revisionNumbers))
+
+if len(omittedRevisions) > 0 :
+  nextArgs += '-o \'{0}\' '.format(','.join(omittedRevisions))
 
 nextArgs += ' '.join(searchStrings)
 
