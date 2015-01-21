@@ -1,4 +1,4 @@
-#!python
+#!/usr/bin/env python
 
 import string
 import re
@@ -51,6 +51,9 @@ class Review(object) :
 
   def covers(self, revision) :
     return (revision >= self.start and revision <= self.end)
+
+  def printArg() :
+    return "-r '{0}:{1}-{2}'".format(self.reviewNo, self.start, self.end)
 
 def getNodeKind(repoPath, path, revision) :
   url = repoPath + "/" + path + "@" + str(revision)
@@ -159,6 +162,16 @@ for revisionText in reversed(revlist) :
       i = i + 1
 
 paths = sorted(paths, key=lambda path: path.path)
+projectRegex = re.compile('^(?P<project>(([^/]+/)*trunk)|(([^/]+/)*branches/[^/]+))/')
+
+nextArgs = ''
+for prevReview in previousReviews :
+  nextArgs += prevReview.printArg() + ' '
+
+if len(revisionNumbers) > 0 :
+  nextArgs += '-r \'{0}:{1}-{2}\' '.format(thisReviewNo, min(revisionNumbers), max(revisionNumbers))
+
+nextArgs += ' '.join(searchStrings)
 
 print '== Revisions =='
 print ''
@@ -170,24 +183,28 @@ for revno in revisionNumbers :
 print ''
 print 'Filter: `{0}`'.format(str(sys.argv[1:]))
 print ''
+print 'Next Args: `{0}`'.format(nextArgs)
+print ''
 print '== Effected Paths =='
 print ''
 for nextPath in paths :
   if (nextPath.nodeKind == "file") :
     filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
+    project = re.match(projectRegex, nextPath.path).group('project')
     if (nextPath.min == None) :
-      print ' * `{0}` ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax)
+      print ' * `{4}/.../{0}` ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax, project)
     elif (nextPath.min == nextPath.overallMin and nextPath.max == nextPath.overallMax) :
-      print ' * [log:{1}@{2}:{3} {0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max)
+      print ' * [log:{1}@{2}:{3} {4}/.../{0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max, project)
     else :
-      print ' * [log:{1}@{2}:{3} {0}] ([log:{1}@{4}:{5} Total Changes])'.format(filename, nextPath.path, nextPath.min, nextPath.max, nextPath.overallMin, nextPath.overallMax)
+      print ' * [log:{1}@{2}:{3} {6}/.../{0}] ([log:{1}@{4}:{5} Total Changes])'.format(filename, nextPath.path, nextPath.min, nextPath.max, nextPath.overallMin, nextPath.overallMax, project)
 print ''
 print '== Review {0} =='.format(thisReviewNo)
 print ''
 for nextPath in paths :
   if (nextPath.nodeKind == "file" and nextPath.min != None) :
     filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
-    print '=== [log:{0}@{1}:{2} {3}] ==='.format(nextPath.path, nextPath.min, nextPath.max, filename)
+    project = re.match(projectRegex, nextPath.path).group('project')
+    print '=== [log:{0}@{1}:{2} {4}/.../{3}] ==='.format(nextPath.path, nextPath.min, nextPath.max, filename, project)
     print ''
     print ' 1. '
     print ''
