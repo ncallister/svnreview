@@ -52,7 +52,7 @@ class Review(object) :
   def covers(self, revision) :
     return (revision >= self.start and revision <= self.end)
 
-  def printArg() :
+  def printArg(self) :
     return "-r '{0}:{1}-{2}'".format(self.reviewNo, self.start, self.end)
 
 def getNodeKind(repoPath, path, revision) :
@@ -121,8 +121,8 @@ for argument in sys.argv[1:] :
   else :
     searchStrings.append(argument)
 
-if (invalidArgs) :
-    print 'Usage: python review.py [-r reviewno:start-end [-r reviewno:start-end ...]] [-o <comma separated list of omitted revisions>] [search_term [search_term ...]]'
+if (invalidArgs or len(searchStrings) == 0) :
+    print 'Usage: python review.py [-r reviewno:start-end [-r reviewno:start-end ...]] [-o <comma separated list of omitted revisions>] search_term [search_term ...]'
     sys.exit()
 
 # Perform the query
@@ -131,8 +131,9 @@ process = subprocess.Popen(command.split(), stdout=subprocess.PIPE)
 output = process.communicate()
 
 revlist = re.split('-{72}', output[0])
-revisionReviews = {}
-revisionNumbers = []
+revisionReviews = {}  # The review number for each revision
+revisionNumbers = []  # All revision numbers
+thisReviewRevisions = []  # The revisions relevant to *this* review
 paths = []
 for revisionText in reversed(revlist) :
   # The conditions are to be ORed so search for any match
@@ -153,6 +154,9 @@ for revisionText in reversed(revlist) :
         if (review.covers(revisionNumber)) :
           revisionReviews[revisionNumber] = review
           break
+
+      if revisionReviews[revisionNumber] == None :
+        thisReviewRevisions.append(revisionNumber)
 
       lines = re.split('\n', revisionText)
       i = 3
@@ -179,13 +183,13 @@ nextArgs = ''
 for prevReview in previousReviews :
   nextArgs += prevReview.printArg() + ' '
 
-if len(revisionNumbers) > 0 :
-  nextArgs += '-r \'{0}:{1}-{2}\' '.format(thisReviewNo, min(revisionNumbers), max(revisionNumbers))
+if len(thisReviewRevisions) > 0 :
+  nextArgs += '-r \'{0}:{1}-{2}\' '.format(thisReviewNo, min(thisReviewRevisions), max(thisReviewRevisions))
 
 if len(omittedRevisions) > 0 :
   nextArgs += '-o \'{0}\' '.format(','.join(omittedRevisions))
 
-nextArgs += ' '.join(searchStrings)
+nextArgs += '\'' + '\' \''.join(searchStrings) + '\''
 
 print '== Revisions =='
 print ''
