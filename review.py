@@ -210,11 +210,11 @@ for nextPath in paths :
     filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
     project = re.match(projectRegex, nextPath.path).group('project')
     if (nextPath.min == None) :
-      print ' * `{4}/.../{0}` ([log:{1}@{2}:{3} Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax, project)
+      print ' * `{4}/.../{0}` ([log:"{1}@{2}:{3}" Total Changes])'.format(filename, nextPath.path, nextPath.overallMin, nextPath.overallMax, project)
     elif (nextPath.min == nextPath.overallMin and nextPath.max == nextPath.overallMax) :
-      print ' * [log:{1}@{2}:{3} {4}/.../{0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max, project)
+      print ' * [log:"{1}@{2}:{3}" {4}/.../{0}]'.format(filename, nextPath.path, nextPath.min, nextPath.max, project)
     else :
-      print ' * [log:{1}@{2}:{3} {6}/.../{0}] ([log:{1}@{4}:{5} Total Changes])'.format(filename, nextPath.path, nextPath.min, nextPath.max, nextPath.overallMin, nextPath.overallMax, project)
+      print ' * [log:"{1}@{2}:{3}" {6}/.../{0}] ([log:"{1}@{4}:{5}" Total Changes])'.format(filename, nextPath.path, nextPath.min, nextPath.max, nextPath.overallMin, nextPath.overallMax, project)
 print ''
 print '== Review {0} =='.format(thisReviewNo)
 print ''
@@ -222,7 +222,7 @@ for nextPath in paths :
   if (nextPath.nodeKind == "file" and nextPath.min != None) :
     filename = nextPath.path[string.rfind(nextPath.path, '/') + 1:]
     project = re.match(projectRegex, nextPath.path).group('project')
-    print '=== [log:{0}@{1}:{2} {4}/.../{3}] ==='.format(nextPath.path, nextPath.min, nextPath.max, filename, project)
+    print '=== [log:"{0}@{1}:{2}" {4}/.../{3}] ==='.format(nextPath.path, nextPath.min, nextPath.max, filename, project)
     print ''
     print ' 1. '
     print ''
